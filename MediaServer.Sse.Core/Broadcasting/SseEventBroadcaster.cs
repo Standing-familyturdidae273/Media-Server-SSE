@@ -47,14 +47,14 @@ public class SseEventBroadcaster : ISseEventBroadcaster
 
     public void Broadcast(SseEvent sseEvent)
     {
-        foreach (var (id, writer) in _subscribers)
+        foreach (var kvp in _subscribers)
         {
-            if (!writer.TryWrite(sseEvent))
+            if (!kvp.Value.TryWrite(sseEvent))
             {
                 // Channel completed (client gone) — clean up
-                if (writer.TryComplete())
+                if (kvp.Value.TryComplete())
                 {
-                    _subscribers.TryRemove(id, out _);
+                    _subscribers.TryRemove(kvp.Key, out _);
                 }
             }
         }
@@ -70,9 +70,9 @@ public class SseEventBroadcaster : ISseEventBroadcaster
         _disposed = true;
         _pingTimer.Dispose();
 
-        foreach (var (_, writer) in _subscribers)
+        foreach (var kvp in _subscribers)
         {
-            writer.TryComplete();
+            kvp.Value.TryComplete();
         }
 
         _subscribers.Clear();

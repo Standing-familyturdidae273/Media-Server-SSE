@@ -1,0 +1,124 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.312
+
+      - name: Derive version
+        id: version
+        run: |
+          RELEASE_VERSION="${GITHUB_REF#refs/tags/v}"
+          ASSEMBLY_VERSION="${RELEASE_VERSION}.0"
+          echo "release=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "assembly=${ASSEMBLY_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Publish Jellyfin plugin
+        run: |
+          dotnet publish Jellyfin.Plugin.Sse \
+            --configuration Release \
+            --output out/jellyfin \
+            /p:Version=${{ steps.version.outputs.assembly }}
+
+      - name: Publish Emby plugin
+        run: |
+          dotnet publish Emby.Plugin.Sse \
+            --configuration Release \
+            --output out/emby \
+            /p:Version=${{ steps.version.outputs.assembly }}
+
+      - name: Package zips
+        id: package
+        run: |
+          REL=${{ steps.version.outputs.release }}
+          JF_ZIP="Tracearr.Sse.Jellyfin_${REL}.zip"
+          EMBY_ZIP="Tracearr.Sse.Emby_${REL}.zip"
+
+          (cd out/jellyfin && zip "../../${JF_ZIP}" Jellyfin.Plugin.Sse.dll MediaServer.Sse.Core.dll)
+          (cd out/emby && zip "../../${EMBY_ZIP}" Emby.Plugin.Sse.dll MediaServer.Sse.Core.dll)
+
+          JF_MD5=$(md5sum "${JF_ZIP}" | awk '{print $1}')
+          EMBY_MD5=$(md5sum "${EMBY_ZIP}" | awk '{print $1}')
+
+          sha256sum "${JF_ZIP}" "${EMBY_ZIP}" > SHA256SUMS
+
+          echo "jf_zip=${JF_ZIP}" >> "$GITHUB_OUTPUT"
+          echo "emby_zip=${EMBY_ZIP}" >> "$GITHUB_OUTPUT"
+          echo "jf_md5=${JF_MD5}" >> "$GITHUB_OUTPUT"
+          echo "emby_md5=${EMBY_MD5}" >> "$GITHUB_OUTPUT"
+
+      - name: Build provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            ${{ steps.package.outputs.jf_zip }}
+            ${{ steps.package.outputs.emby_zip }}
+
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          REL=${{ steps.version.outputs.release }}
+          BODY=$(awk -v ver="$REL" '
+            $0 ~ "^## \\[" ver "\\]" { capture=1; next }
+            capture && $0 ~ "^## \\[" { exit }
+            capture { print }
+          ' CHANGELOG.md)
+          if [ -z "$BODY" ]; then
+            BODY="See CHANGELOG.md."
+          fi
+          {
+            echo "body<<__END__"
+            echo "$BODY"
+            echo "__END__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.release }}
+          name: v${{ steps.version.outputs.release }}
+          body: ${{ steps.changelog.outputs.body }}
+          files: |
+            ${{ steps.package.outputs.jf_zip }}
+            ${{ steps.package.outputs.emby_zip }}
+            SHA256SUMS
+
+      - name: Configure git for manifest commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update manifests
+        run: |
+          .github/scripts/update-manifests.py \
+            ${{ steps.version.outputs.release }} \
+            ${{ steps.package.outputs.jf_md5 }} \
+            ${{ steps.package.outputs.emby_md5 }}
+
+      - name: Commit and push manifests
+        run: |
+          git add manifest.json emby-packages.xml
+          git commit -m "release v${{ steps.version.outputs.release }} [skip ci]"
+          git push origin HEAD:main

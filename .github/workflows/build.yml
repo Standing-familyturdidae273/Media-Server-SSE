@@ -1,0 +1,36 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.312
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Validate manifest.json
+        run: jq -e . manifest.json > /dev/null
+
+      - name: Validate emby-packages.xml
+        run: python3 -c "import xml.etree.ElementTree as ET; ET.parse('emby-packages.xml')"
+
+      - name: Run manifest-update script tests
+        run: .github/scripts/update-manifests.test.sh

@@ -3,3 +3,9 @@ obj/
 *.user
 *.suo
 .vs/
+.idea/
+*.swp
+*.swo
+out/
+publish/
+.DS_Store

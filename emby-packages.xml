@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <Packages>
   <PackageInfo>
     <name>Tracearr SSE</name>
@@ -9,6 +9,16 @@
     <category>General</category>
     <thumbImage>https://raw.githubusercontent.com/Tracearr/Media-Server-SSE/main/assets/icon.png</thumbImage>
     <targetSystem>Server</targetSystem>
-    <versions></versions>
+    <versions>
+      <version>
+        <versionStr>0.1.0.0</versionStr>
+        <classification>Release</classification>
+        <description>See GitHub release notes.</description>
+        <sourceUrl>https://github.com/Tracearr/Media-Server-SSE/releases/download/v0.1.0/Tracearr.Sse.Emby_0.1.0.zip</sourceUrl>
+        <checksum>303f0590659227d88697bc06aee2de55</checksum>
+        <runtimes>netstandard</runtimes>
+        <timestamp>2026-05-07T20:31:34Z</timestamp>
+      </version>
+    </versions>
   </PackageInfo>
 </Packages>

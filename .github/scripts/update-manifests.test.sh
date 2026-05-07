@@ -8,10 +8,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT="$SCRIPT_DIR/update-manifests.py"
 
-TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
+TEST_TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
-cd "$TMPDIR"
+cd "$TEST_TMPDIR"
 
 # Fixture: empty-versions manifest.json
 cat > manifest.json <<'EOF'
@@ -95,6 +95,18 @@ EMBY_FIRST=$(emby_first_field versionStr)
 
 EMBY_COUNT2=$(emby_count)
 [ "$EMBY_COUNT2" = "2" ] || { echo "FAIL: emby versions count after 2nd run = $EMBY_COUNT2, expected 2"; exit 1; }
+
+# Third run: omit timestamp, verify default is current UTC ISO-8601
+"$SCRIPT" 0.3.0 mno345 pqr678
+
+JF_TS=$(jq -r '.[0].versions[0].timestamp' manifest.json)
+echo "$JF_TS" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' || { echo "FAIL: jellyfin default timestamp wrong format: $JF_TS"; exit 1; }
+
+EMBY_TS=$(emby_first_field timestamp)
+echo "$EMBY_TS" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' || { echo "FAIL: emby default timestamp wrong format: $EMBY_TS"; exit 1; }
+
+JF_COUNT3=$(jq '.[0].versions | length' manifest.json)
+[ "$JF_COUNT3" = "3" ] || { echo "FAIL: jellyfin versions count after 3rd run = $JF_COUNT3, expected 3"; exit 1; }
 
 # Validate JSON and XML are still well-formed
 jq -e . manifest.json > /dev/null || { echo "FAIL: manifest.json invalid JSON"; exit 1; }

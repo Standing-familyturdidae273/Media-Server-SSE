@@ -43,21 +43,30 @@ def main(argv):
         else datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     )
 
+    # Jellyfin/Emby plugin manifests use 4-part assembly versions: 0.1.0 -> 0.1.0.0
     assembly_version = f"{release_version}.0"
     jf_url = JF_URL_TEMPLATE.format(v=release_version)
     emby_url = EMBY_URL_TEMPLATE.format(v=release_version)
 
-    update_manifest_json(assembly_version, jf_md5, jf_url, timestamp)
-    update_emby_xml(assembly_version, emby_md5, emby_url, timestamp)
+    # Build both outputs in memory first; if either raises, no files are written
+    json_text = build_manifest_json(assembly_version, jf_md5, jf_url, timestamp)
+    xml_tree = build_emby_xml(assembly_version, emby_md5, emby_url, timestamp)
+
+    Path("manifest.json").write_text(json_text)
+    write_emby_xml(xml_tree, Path("emby-packages.xml"))
 
     print(
         f"updated manifest.json and emby-packages.xml for version {release_version}"
     )
 
 
-def update_manifest_json(version, checksum, source_url, timestamp):
+def build_manifest_json(version, checksum, source_url, timestamp):
     path = Path("manifest.json")
     data = json.loads(path.read_text())
+    if not isinstance(data, list) or len(data) == 0:
+        sys.exit("manifest.json: expected a non-empty array of plugin objects")
+    if "versions" not in data[0]:
+        sys.exit("manifest.json: data[0].versions key not found")
     new_entry = {
         "version": version,
         "changelog": "See GitHub release notes.",
@@ -67,10 +76,10 @@ def update_manifest_json(version, checksum, source_url, timestamp):
         "timestamp": timestamp,
     }
     data[0]["versions"] = [new_entry] + data[0]["versions"]
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    return json.dumps(data, indent=2) + "\n"
 
 
-def update_emby_xml(version, checksum, source_url, timestamp):
+def build_emby_xml(version, checksum, source_url, timestamp):
     path = Path("emby-packages.xml")
     tree = ET.parse(path)
     root = tree.getroot()
@@ -95,6 +104,10 @@ def update_emby_xml(version, checksum, source_url, timestamp):
     versions.insert(0, new_version)
 
     ET.indent(tree, space="  ")
+    return tree
+
+
+def write_emby_xml(tree, path):
     tree.write(path, encoding="utf-8", xml_declaration=True)
     with path.open("ab") as f:
         f.write(b"\n")

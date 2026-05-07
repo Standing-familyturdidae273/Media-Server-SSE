@@ -235,9 +235,6 @@ public class SseEntryPointTests : IDisposable
         entryPoint.Dispose();
     }
 
-    /// <summary>
-    /// Subscribe to the broadcaster and return the channel reader.
-    /// </summary>
     private ChannelReader<SseEvent> Subscribe()
     {
         var broadcaster = SseEntryPoint.Broadcaster!;
@@ -245,11 +242,7 @@ public class SseEntryPointTests : IDisposable
         return reader;
     }
 
-    /// <summary>
-    /// Try to read a single event from the channel. Returns null if no event is available.
-    /// Since Broadcast writes synchronously to the channel, TryRead will succeed
-    /// immediately after the event is raised.
-    /// </summary>
+    // Broadcast writes synchronously to the channel, so TryRead succeeds immediately after the event is raised.
     private static SseEvent? ReadSingle(ChannelReader<SseEvent> reader)
     {
         return reader.TryRead(out var evt) ? evt : null;

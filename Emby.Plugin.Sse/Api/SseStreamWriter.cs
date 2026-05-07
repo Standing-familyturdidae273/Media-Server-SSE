@@ -79,7 +79,6 @@ namespace Emby.Plugin.Sse.Api
             }
             catch (OperationCanceledException)
             {
-                // Client disconnected
             }
             finally
             {

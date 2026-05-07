@@ -66,7 +66,6 @@ public class SseEventBroadcasterTests : IDisposable
     {
         var (_, reader) = _broadcaster.Subscribe();
 
-        // Fill the channel (capacity 100)
         for (int i = 0; i < 100; i++)
         {
             _broadcaster.Broadcast(new SseEvent { EventType = "progress", SessionId = $"s{i}" });
@@ -75,7 +74,6 @@ public class SseEventBroadcasterTests : IDisposable
         // DropWrite silently drops the newest item when full — TryWrite still returns true
         _broadcaster.Broadcast(new SseEvent { EventType = "progress", SessionId = "overflow" });
 
-        // Should still have exactly 100 events (the overflow was dropped)
         int count = 0;
         while (reader.TryRead(out _))
         {
@@ -88,14 +86,12 @@ public class SseEventBroadcasterTests : IDisposable
     [Fact]
     public async Task PingTimer_SendsPingEvents()
     {
-        // Create broadcaster with short ping interval for testing
         using var fastBroadcaster = new SseEventBroadcaster(
             NullLogger<SseEventBroadcaster>.Instance,
             pingIntervalMs: 100);
 
         var (_, reader) = fastBroadcaster.Subscribe();
 
-        // Wait for at least one ping
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         var evt = await reader.ReadAsync(cts.Token);
 

